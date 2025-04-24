@@ -1,0 +1,342 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Management - Restaurant Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'dashboard.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Restaurant Management</h2>
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="{% url 'dashboard' %}" class="nav-link">
+                        <i class="fas fa-home"></i>
+                        <span>Dashboard</span>
+                    </a></li>
+                    <li><a href="{% url 'manage_pos_payments' %}" class="nav-link">
+                        <i class="fas fa-cash-register"></i>
+                        <span>POS Management</span>
+                    </a></li>
+                    <li><a href="{% url 'view_orders' %}" class="nav-link">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Order Management</span>
+                    </a></li>
+                    <li><a href="{% url 'manage_bank_payments' %}" class="nav-link">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Bank Payments</span>
+                    </a></li>
+                    <li><a href="{% url 'staff_management' %}" class="nav-link active">
+                        <i class="fas fa-users"></i>
+                        <span>Staff Management</span>
+                    </a></li>
+                    <li><a href="{% url 'menu_management' %}" class="nav-link">
+                        <i class="fas fa-utensils"></i>
+                        <span>Menu Management</span>
+                    </a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Page Header -->
+            <div class="content-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h1 class="mb-0">Staff Management</h1>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStaffModal">
+                            <i class="fas fa-plus-circle me-2"></i>Add Staff
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Staff Management Controls -->
+            <div class="controls-wrapper mb-4">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="search-box">
+                            <input type="text" id="staffSearch" placeholder="Search staff..." class="form-control">
+                            <i class="fas fa-search"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select id="departmentFilter" class="form-control">
+                            <option value="">All Departments</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select id="roleFilter" class="form-control">
+                            <option value="">All Roles</option>
+                            {% for role in roles %}
+                            <option value="{{ role.id }}">{{ role.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button onclick="exportStaffData()" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-file-export me-2"></i>Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Staff Grid -->
+            <div class="summary-grid">
+                {% for staff in staff_list %}
+                <div class="summary-card staff-card" data-department="{{ staff.department.id }}" data-role="{{ staff.role.id }}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0">{{ staff.user.get_full_name }}</h5>
+                            <span class="badge {% if staff.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                {{ staff.is_active|yesno:"Active,Inactive" }}
+                            </span>
+                        </div>
+
+                        <div class="staff-details">
+                            <div class="mb-2">
+                                <strong>Department:</strong> 
+                                <select class="form-select form-select-sm" onchange="updateStaffAssignment({{ staff.id }}, 'department', this.value)">
+                                    <option value="">Select Department</option>
+                                    {% for dept in departments %}
+                                    <option value="{{ dept.id }}" {% if staff.department.id == dept.id %}selected{% endif %}>
+                                        {{ dept.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-2">
+                                <strong>Role:</strong>
+                                <select class="form-select form-select-sm" onchange="updateStaffAssignment({{ staff.id }}, 'role', this.value)">
+                                    <option value="">Select Role</option>
+                                    {% for role in roles %}
+                                    <option value="{{ role.id }}" {% if staff.role.id == role.id %}selected{% endif %}>
+                                        {{ role.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="performance-section">
+                                {% with staff.progress_records.first as latest_progress %}
+                                {% if latest_progress %}
+                                <div class="card bg-light mb-2">
+                                    <div class="card-body py-2">
+                                        <div class="d-flex justify-content-between">
+                                            <small class="text-muted">Performance:</small>
+                                            <span class="badge {% if latest_progress.performance_rating == 'excellent' %}bg-success{% elif latest_progress.performance_rating == 'good' %}bg-info{% elif latest_progress.performance_rating == 'average' %}bg-warning{% else %}bg-danger{% endif %}">
+                                                {{ latest_progress.performance_rating|title }}
+                                            </span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mt-1">
+                                            <small class="text-muted">Tasks Completed:</small>
+                                            <small>{{ latest_progress.tasks_completed }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {% endwith %}
+                            </div>
+
+                            <div class="staff-actions d-flex justify-content-between">
+                                <button onclick="viewStaffHistory({{ staff.id }})" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-history me-1"></i>History
+                                </button>
+                                <button onclick="addProgressRecord({{ staff.id }})" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-plus me-1"></i>Add Progress
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="empty-state text-center">
+                        <i class="fas fa-users-slash fa-4x text-muted mb-3"></i>
+                        <h3>No Staff Members</h3>
+                        <p class="text-muted">Add your first staff member to get started</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Progress Record Modal -->
+    <div class="modal fade" id="progressModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Staff Progress</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="progressForm">
+                        <input type="hidden" id="progressStaffId">
+                        <div class="mb-3">
+                            <label class="form-label">Performance Rating</label>
+                            <select name="performance_rating" class="form-select" required>
+                                <option value="excellent">Excellent</option>
+                                <option value="good">Good</option>
+                                <option value="average">Average</option>
+                                <option value="needs_improvement">Needs Improvement</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tasks Completed</label>
+                            <input type="number" name="tasks_completed" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Comments</label>
+                            <textarea name="comments" class="form-control" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitProgressRecord()">Save Progress</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Staff Modal -->
+    <div class="modal fade" id="addStaffModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Staff Member</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addStaffForm">
+                        <div class="mb-3">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" class="form-control" name="full_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Department</label>
+                            <select class="form-select" name="department" required>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Role</label>
+                            <select class="form-select" name="role" required>
+                                {% for role in roles %}
+                                <option value="{{ role.id }}">{{ role.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitNewStaff()">Add Staff</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // JavaScript for Staff Management
+        function updateStaffAssignment(staffId, field, value) {
+            fetch(`/staff/update_assignment/${staffId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ field: field, value: value })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Optional: Show success toast/notification
+                }
+            });
+        }
+
+        function addProgressRecord(staffId) {
+            document.getElementById('progressStaffId').value = staffId;
+            new bootstrap.Modal(document.getElementById('progressModal')).show();
+        }
+
+        function submitProgressRecord() {
+            const staffId = document.getElementById('progressStaffId').value;
+            const form = document.getElementById('progressForm');
+            const formData = new FormData(form);
+
+            fetch(`/staff/add_progress/${staffId}/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('progressModal')).hide();
+                    // Optional: Refresh staff card or show success message
+                }
+            });
+        }
+
+        function submitNewStaff() {
+            const form = document.getElementById('addStaffForm');
+            const formData = new FormData(form);
+
+            fetch('/staff/add/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('addStaffModal')).hide();
+                    // Optional: Add new staff to list or refresh page
+                }
+            });
+        }
+
+        // Additional functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('staffSearch');
+            const departmentFilter = document.getElementById('departmentFilter');
+            const roleFilter = document.getElementById('roleFilter');
+
+            function filterStaff() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const selectedDepartment = departmentFilter.value;
+                const selectedRole = roleFilter.value;
+
+                document.querySelectorAll('.staff-card').forEach(card => {
+                    const nameMatch = card.querySelector('.card-title').textContent.toLowerCase().includes(searchTerm);
+                    const departmentMatch = !selectedDepartment || card.

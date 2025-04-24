@@ -1,0 +1,221 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Menu - Scan n Order</title>
+    
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="/static/images/favicon.ico" type="image/x-icon">
+    
+    <!-- External CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'style.css'%}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">dex delicious</a>
+            <button class="btn btn-primary ms-auto" data-bs-toggle="modal" data-bs-target="#orderListModal">
+                View Order List
+            </button>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+        <!-- Menu Header -->
+        <header class="text-center mb-5">
+            <h1 class="display-4">Our Menu</h1>
+            <p class="lead">Scan, Order & Enjoy!</p>
+        </header>
+
+        <!-- Menu Sections -->
+        <div class="menu-container">
+            <!-- Appetizers Section -->
+            <section class="menu-section mb-5">
+                <h2 class="section-title">Appetizers</h2>
+                <div class="row g-4">
+                    {% for item in menu_items %}
+                        {% if item.category == 'Appetizers' %}
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card h-100">
+                                    {% if item.image %}
+                                        <img src="{{ item.image.url }}" class="card-img-top" alt="{{ item.name }}">
+                                    {% endif %}
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ item.name }}</h5>
+                                        <p class="card-text">{{ item.description }}</p>
+                                        <p class="price">₦{{ item.price }}</p>
+                                        <form method="POST" action="{% url 'add_to_order' item.id %}" class="d-grid">
+                                            {% csrf_token %}
+                                            <button class="btn btn-primary">Add to Order</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Main Dishes Section -->
+            <section class="menu-section mb-5">
+                <h2 class="section-title">Main Dishes</h2>
+                <div class="row g-4">
+                    {% for item in menu_items %}
+                        {% if item.category == 'Main Dishes' %}
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card h-100">
+                                    {% if item.image %}
+                                        <img src="{{ item.image.url }}" class="card-img-top" alt="{{ item.name }}">
+                                    {% endif %}
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ item.name }}</h5>
+                                        <p class="card-text">{{ item.description }}</p>
+                                        <p class="price">₦{{ item.price }}</p>
+                                        <form method="POST" action="{% url 'add_to_order' item.id %}" class="d-grid">
+                                            {% csrf_token %}
+                                            <button class="btn btn-primary">Add to Order</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Desserts Section -->
+            <section class="menu-section mb-5">
+                <h2 class="section-title">Desserts</h2>
+                <div class="row g-4">
+                    {% for item in menu_items %}
+                        {% if item.category == 'Desserts' %}
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card h-100">
+                                    {% if item.image %}
+                                        <img src="{{ item.image.url }}" class="card-img-top" alt="{{ item.name }}">
+                                    {% endif %}
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ item.name }}</h5>
+                                        <p class="card-text">{{ item.description }}</p>
+                                        <p class="price">₦{{ item.price }}</p>
+                                        <form method="POST" action="{% url 'add_to_order' item.id %}" class="d-grid">
+                                            {% csrf_token %}
+                                            <button class="btn btn-primary">Add to Order</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+    </div>
+
+        <!-- Order List Modal -->
+    <div class="modal fade" id="orderListModal" tabindex="-1" aria-labelledby="orderListModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="orderListModalLabel">Your Order</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="order-summary">
+                        <h3>Order Summary</h3>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order_list %}
+                                <tr>
+                                    <td>{{ item.name }}</td>
+                                    <td>₦{{ item.price }}</td>
+                                    <td>1</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="2"><strong>Total</strong></td>
+                                    <td><strong>₦{{ total_price }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    
+                    <div class="payment-options">
+                        <h3>Payment Options</h3>
+                        <div class="d-grid gap-2">
+                            <form method="post" action="{% url 'initialize_payment'  %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary w-100">Pay with PayStack</button>
+                            </form>
+                            <form method="post" action="{% url 'request_pos_payment' order.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-secondary w-100">Pay via POS</button>
+                            </form>
+                            <form method="post" action="{% url 'bank_details' order.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-info w-100">Bank Transfer</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Add this loader element at the end of your HTML body -->
+    <div id="loader" class="loader-container d-none">
+    <div class="loader"></div>
+    <p>Loading...</p>
+    </div>
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loader = document.getElementById('loader');
+    
+            // Show the loader
+            loader.classList.remove('d-none');
+    
+            // Hide the loader when the menu items have finished loading
+            window.addEventListener('load', function() {
+                loader.classList.add('d-none');
+            });
+        });
+    </script>
+    <script>
+        // Handle modal height
+        document.addEventListener('show.bs.modal', function (event) {
+            const modalBody = event.target.querySelector('.modal-body');
+            const windowHeight = window.innerHeight;
+            modalBody.style.maxHeight = (windowHeight * 0.7) + 'px';
+        });
+
+        // CSRF Token helper
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>

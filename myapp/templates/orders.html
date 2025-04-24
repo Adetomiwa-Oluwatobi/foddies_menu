@@ -1,0 +1,217 @@
+{% load static %}
+{% load order_filters %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'dashboard.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Restaurant</h2>
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li>
+                        <a href="{% url 'manage_pos_payments' %}" class="nav-link">
+                            <i class="fas fa-cash-register"></i>
+                            <span>POS Management</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'view_orders' %}" class="nav-link active">
+                            <i class="fas fa-clipboard-list"></i>
+                            <span>Order Management</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'manage_bank_payments' %}" class="nav-link active">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>Bank Payments</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'staff_management'%}" class="nav-link">
+                            <i class="fas fa-users"></i>
+                            <span>Staff Management</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'menu_management'%}" class="nav-link">
+                            <i class="fas fa-utensils"></i>
+                            <span>Menu Management</span>
+                        </a>
+                    </li>
+                </ul>
+                <h6>@ DEX FACILITAS</h6>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1>Order Management</h1>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <input type="text" placeholder="Search orders...">
+                        <i class="fas fa-search"></i>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-body">
+                <div class="orders-table-wrapper">
+                    <table class="orders-table">
+                        <thead>
+                            <tr>
+                                <th>Items</th>
+                                <th>Total Price</th>
+                                <th>Order Status</th>
+                                <th>Payment Status</th>
+                                <th>Payment Action</th>
+                                <th>Action</th>
+                                <th>Payment Method</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr data-order-id="{{ order.id }}">
+                                <td>
+                                    {% with items=order_items|get_order_items:order.id %}
+                                    <ul class="order-items-list">
+                                        {% for item in items %}
+                                        <li>{{ item.name }} (₦{{ item.price }})</li>
+                                        {% endfor %}
+                                    </ul>
+                                    {% endwith %}
+                                </td>
+                                <td class="price">₦{{ order.price }}</td>
+                                <td>
+                                    <span class="status-badge status-{{ order.get_status_display|lower }}">
+                                        {{ order.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="payment-badge payment-{{ order.payment_status|lower }}">
+                                        {{ order.payment_status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if order.payment_status == 'requesting' %}
+                                    <form method="post" action="{% url 'mark_as_paid' order.id %}" class="payment-form">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-action btn-pay">
+                                            <i class="fas fa-check"></i> Mark as Paid
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span class="text-muted">No Action Required</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if order.status == 'pending' %}
+                                    <button class="btn-action btn-deliver" onclick="markAsDelivered({{ order.id }})">
+                                        <i class="fas fa-truck"></i> Mark Delivered
+                                    </button>
+                                    {% else %}
+                                    <span class="status-complete">
+                                        <i class="fas fa-check-circle"></i> Delivered
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ order.payment_method }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+                <!-- Table Totals Section -->
+                <section class="table-totals">
+                    <h2>Table Totals</h2>
+                    <div class="totals-grid">
+                        {% for table in tables %}
+                        <div class="total-card">
+                            <div class="total-header">Table {{ table.table_number }}</div>
+                            <div class="total-amount">₦{{ table.total_price }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Your existing JavaScript for markAsDelivered and getCookie
+        function markAsDelivered(orderId) {
+            fetch(`/mark-delivered/${orderId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    const orderRow = document.querySelector(`[data-order-id="${orderId}"]`);
+                    orderRow.querySelector('.btn-deliver').replaceWith(
+                        createStatusCompleteElement()
+                    );
+                    showNotification('Order marked as delivered successfully');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Failed to mark order as delivered', 'error');
+            });
+        }
+
+        function createStatusCompleteElement() {
+            const span = document.createElement('span');
+            span.className = 'status-complete';
+            span.innerHTML = '<i class="fas fa-check-circle"></i> Delivered';
+            return span;
+        }
+
+        function showNotification(message, type = 'success') {
+            // Implement a notification system
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Sidebar toggle functionality
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+            document.querySelector('.main-content').classList.toggle('expanded');
+        });
+    </script>
+</body>
+</html>

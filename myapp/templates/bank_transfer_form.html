@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Transfer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Pay via Bank Transfer</h1>
+        <p>Please transfer the total amount of <strong>₦{{ order.price }}</strong> to the following account:</p>
+        <ul>
+            <li><strong>Bank Name:</strong> XYZ Bank</li>
+            <li><strong>Account Name:</strong> Restaurant XYZ</li>
+            <li><strong>Account Number:</strong> 1234567890</li>
+        </ul>
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="payment_reference" class="form-label">Payment Reference</label>
+                <input type="text" id="payment_reference" name="payment_reference" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-info">Submit Payment Reference</button>
+        </form>
+    </div>
+</body>
+</html>
